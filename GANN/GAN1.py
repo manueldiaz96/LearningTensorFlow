@@ -5,9 +5,11 @@ Created on Fri Nov 23 09:46:23 2018
 @author: Manuel Alejandro Diaz Zapata
 
 https://blog.paperspace.com/implementing-gans-in-tensorflow/
+https://github.com/aadilh/blogs/tree/new/basic-gans/basic-gans/code
 """
 import tensorflow as tf
 import numpy as np
+from matplotlib import pyplot as plt
 
 def get_y(x):
     return (x**2)+(4*x)
@@ -83,8 +85,7 @@ print "ver" ,tf.__version__
 
 data = sample_data()
 
-from matplotlib import pyplot as plt
-plt.scatter(data[:,0],data[:,1])
+
 
 # For the purpose of training we define the following placeholders 
 # X and Z for real samples and random noise samples respectively:
@@ -135,23 +136,46 @@ tf.global_variables_initializer().run(session=sess)
 dloss_plot = []
 gloss_plot = []
 
-for i in range(1001):
+import time
+start_time = time.time()
+
+iterations = 10000
+fig_generator, gen_plot = plt.subplots()
+
+xax = gen_plot.scatter(data[:,0], data[:,1])
+diff_gen_datos = 0
+
+
+for i in range(iterations+1):
     X_batch = sample_data(n = batch_size)
     Z_batch = sample_Z(batch_size, 2)
     _, dloss = sess.run([disc_step, disc_loss], feed_dict={X:X_batch, Z: Z_batch})
     _, gloss = sess.run([gen_step, gen_loss], feed_dict={Z: Z_batch})
+
+    g_plot = sess.run(G_sample, feed_dict={Z: Z_batch})
+    diff_gen_datos = np.mean((data-g_plot))
     
-    print ("Iterations: %d\t Discriminator loss: %.4f\t Generator loss: %.4f"%(i,dloss,gloss))
+    print ("Iterations: %d\t Discriminator loss: %.4f\t Generator loss: %.4f\t Diff: %.3f"%(i,dloss,gloss,diff_gen_datos))
     dloss_plot.append(dloss)
     gloss_plot.append(gloss)
 
 
+
+g_plot = sess.run(G_sample, feed_dict={Z: Z_batch})
+xax = gen_plot.scatter(data[:,0], data[:,1], color = "blue", label="Real Data")
+gax = gen_plot.scatter(g_plot[:,0],g_plot[:,1], color = "green", label="Generated Data")
+gen_plot.legend()
+plt.plot()
+
+print("%s seconds, %s iterations" % (time.time() - start_time, iterations))
+
 #min_max_losses = (np.min((np.mean(dloss_plot), np.mean(gloss_plot))), np.max((np.mean(dloss_plot), np.mean(gloss_plot))))
 
 
-fig1, losses_plot = plt.subplots()
-losses_plot.plot(dloss_plot, color = "green")
-losses_plot.plot(gloss_plot, color = "blue")
+fig_losses, losses_plot = plt.subplots()
+dplt = losses_plot.plot(dloss_plot, color = "green", label='Discriminator Loss')
+gplt = losses_plot.plot(gloss_plot, color = "blue", label='Generator Loss')
+losses_plot.legend()
 losses_plot.set_title("Losses")
 
 
